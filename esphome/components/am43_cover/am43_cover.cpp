@@ -21,9 +21,9 @@ void Am43Cover::setup() {
 }
 
 void Am43Cover::loop() {
-  if (this->node_state_ == espbt::ClientState::Established && !this->logged_in_) {
+  if (this->node_state == espbt::ClientState::Established && !this->logged_in_) {
     auto packet = this->encoder_->get_send_pin_request(this->pin_);
-    auto status = esp_ble_gattc_write_char(this->parent_->gattc_if_, this->parent_->conn_id_,
+    auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id,
                                            this->char_handle_, packet->length, packet->data,
                                            ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
     ESP_LOGI(TAG, "[%s] Logging into AM43", this->get_name().c_str());
@@ -43,13 +43,13 @@ CoverTraits Am43Cover::get_traits() {
 }
 
 void Am43Cover::control(const CoverCall &call) {
-  if (this->node_state_ != espbt::ClientState::Established) {
+  if (this->node_state != espbt::ClientState::Established) {
     ESP_LOGW(TAG, "[%s] Cannot send cover control, not connected", this->get_name().c_str());
     return;
   }
   if (call.get_stop()) {
     auto packet = this->encoder_->get_stop_request();
-    auto status = esp_ble_gattc_write_char(this->parent_->gattc_if_, this->parent_->conn_id_,
+    auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id,
                                            this->char_handle_, packet->length, packet->data,
                                            ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
     if (status)
@@ -58,7 +58,7 @@ void Am43Cover::control(const CoverCall &call) {
   if (call.get_position().has_value()) {
     auto pos = *call.get_position();
     auto packet = this->encoder_->get_set_position_request(100 - (uint8_t)(pos * 100));
-    auto status = esp_ble_gattc_write_char(this->parent_->gattc_if_, this->parent_->conn_id_,
+    auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id,
                                            this->char_handle_, packet->length, packet->data,
                                            ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
     if (status)
@@ -79,17 +79,17 @@ void Am43Cover::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t ga
         ESP_LOGW(TAG, "[%s] No control service found at device, not an AM43..?", this->get_name().c_str());
         break;
       }
-      this->char_handle_ = chr->handle_;
+      this->char_handle_ = chr->handle;
 
-      auto status = esp_ble_gattc_register_for_notify(this->parent_->gattc_if_, this->parent_->remote_bda_,
-                                                      chr->handle_);
+      auto status = esp_ble_gattc_register_for_notify(this->parent_->gattc_if, this->parent_->remote_bda,
+                                                      chr->handle);
       if (status) {
         ESP_LOGW(TAG, "[%s] esp_ble_gattc_register_for_notify failed, status=%d", this->get_name().c_str(), status);
       }
       break;
     }
     case ESP_GATTC_REG_FOR_NOTIFY_EVT: {
-      this->node_state_ = espbt::ClientState::Established;
+      this->node_state = espbt::ClientState::Established;
       break;
     }
     case ESP_GATTC_NOTIFY_EVT: {
@@ -107,7 +107,7 @@ void Am43Cover::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t ga
         if (this->decoder_->pin_ok_) {
           ESP_LOGI(TAG, "[%s] AM43 pin accepted.", this->get_name().c_str());
           auto packet = this->encoder_->get_position_request();
-          auto status = esp_ble_gattc_write_char(this->parent_->gattc_if_, this->parent_->conn_id_,
+          auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id,
                                                  this->char_handle_, packet->length, packet->data,
                                                  ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
           if (status)
